@@ -144,16 +144,18 @@ class P01contactField
         } else {
             $url = "https://www.google.com/recaptcha/api/siteverify";
         }
-        $url .= "?" . http_build_query($params);
         if (function_exists('curl_version')) {
             $curl = curl_init($url);
             curl_setopt($curl, CURLOPT_HEADER, false);
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($curl, CURLOPT_TIMEOUT, 1);
+            curl_setopt($curl, CURLOPT_TIMEOUT, 5);
             curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($curl, CURLOPT_POST, true);
+            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($params));
             $response = curl_exec($curl);
         } else {
-            $response = file_get_contents($url);
+            // Fallback: GET with query params (works for reCAPTCHA)
+            $response = file_get_contents($url . "?" . http_build_query($params));
         }
 
         if (empty($response) || is_null($response)) {
