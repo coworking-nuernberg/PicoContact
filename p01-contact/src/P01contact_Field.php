@@ -113,7 +113,7 @@ class P01contactField
             case 'message':
                 return strlen($this->value) > $this->form->config('message_len');
             case 'captcha':
-                return $this->turnstileValidity($_POST['cf-turnstile-response']);
+                return $this->reCaptchaValidity($_POST['g-recaptcha-response']);
             case 'password':
                 return $this->value == $this->required;
             default:
@@ -122,10 +122,10 @@ class P01contactField
     }
 
     /**
-     * Check if Cloudflare Turnstile response is valid
+     * Check if reCaptcha is valid
      * @return boolean
      */
-    public function turnstileValidity($answer)
+    public function reCaptchaValidity($answer)
     {
         if (!$answer) {
             return false;
@@ -134,7 +134,7 @@ class P01contactField
             'secret'    => $this->form->config('recaptcha_secret_key'),
             'response'  => $answer
         ];
-        $url = "https://challenges.cloudflare.com/turnstile/v0/siteverify?" . http_build_query($params);
+        $url = "https://www.google.com/recaptcha/api/siteverify?" . http_build_query($params);
         if (function_exists('curl_version')) {
             $curl = curl_init($url);
             curl_setopt($curl, CURLOPT_HEADER, false);
@@ -221,9 +221,9 @@ class P01contactField
                     break;
                 }
                 if ($this->form->getId() == 1) {
-                    $html .= '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>';
+                    $html .= '<script src="https://www.google.com/recaptcha/api.js"></script>';
                 }
-                $html .='<div class="cf-turnstile" id="'.$id.'" data-sitekey="'.$key.'"></div>';
+                $html .='<div class="g-recaptcha" id="'.$id.'" data-sitekey="'.$key.'"></div>';
                 $html .="<input type=\"hidden\" id=\"$id\" name=\"$name\" value=\"trigger\">";
                 break;
             case 'checkbox':
