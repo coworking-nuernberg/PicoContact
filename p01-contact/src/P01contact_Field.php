@@ -239,7 +239,8 @@ class P01contactField
                     }
                 }
                 if ($provider === 'turnstile') {
-                    $html .= '<div class="cf-turnstile" id="'.$id.'" data-sitekey="'.$key.'"></div>';
+                    $appearance = $this->form->config('turnstile_appearance') ?: 'interaction-only';
+                    $html .= '<div class="cf-turnstile" id="'.$id.'" data-sitekey="'.$key.'" data-appearance="'.$appearance.'"></div>';
                 } else {
                     $html .='<div class="g-recaptcha" id="'.$id.'" data-sitekey="'.$key.'"></div>';
                 }
