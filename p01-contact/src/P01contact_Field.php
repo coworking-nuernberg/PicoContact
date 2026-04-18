@@ -113,7 +113,9 @@ class P01contactField
             case 'message':
                 return strlen($this->value) > $this->form->config('message_len');
             case 'captcha':
-                return $this->reCaptchaValidity($_POST['g-recaptcha-response']);
+                $provider = $this->form->config('captcha_provider') ?: 'recaptcha';
+                $postField = $provider === 'turnstile' ? 'cf-turnstile-response' : 'g-recaptcha-response';
+                return $this->captchaValidity($_POST[$postField]);
             case 'password':
                 return $this->value == $this->required;
             default:
@@ -122,10 +124,12 @@ class P01contactField
     }
 
     /**
-     * Check if reCaptcha is valid
+     * Verify a captcha response against the provider's API.
+     * Supports Google reCAPTCHA v2 and Cloudflare Turnstile.
+     * Both use the same request/response format (secret + response → {"success": true}).
      * @return boolean
      */
-    public function reCaptchaValidity($answer)
+    public function captchaValidity($answer)
     {
         if (!$answer) {
             return false;
@@ -134,7 +138,13 @@ class P01contactField
             'secret'    => $this->form->config('recaptcha_secret_key'),
             'response'  => $answer
         ];
-        $url = "https://www.google.com/recaptcha/api/siteverify?" . http_build_query($params);
+        $provider = $this->form->config('captcha_provider') ?: 'recaptcha';
+        if ($provider === 'turnstile') {
+            $url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+        } else {
+            $url = "https://www.google.com/recaptcha/api/siteverify";
+        }
+        $url .= "?" . http_build_query($params);
         if (function_exists('curl_version')) {
             $curl = curl_init($url);
             curl_setopt($curl, CURLOPT_HEADER, false);
@@ -220,10 +230,19 @@ class P01contactField
                 if (!$key) {
                     break;
                 }
+                $provider = $this->form->config('captcha_provider') ?: 'recaptcha';
                 if ($this->form->getId() == 1) {
-                    $html .= '<script src="https://www.google.com/recaptcha/api.js"></script>';
+                    if ($provider === 'turnstile') {
+                        $html .= '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>';
+                    } else {
+                        $html .= '<script src="https://www.google.com/recaptcha/api.js"></script>';
+                    }
                 }
-                $html .='<div class="g-recaptcha" id="'.$id.'" data-sitekey="'.$key.'"></div>';
+                if ($provider === 'turnstile') {
+                    $html .= '<div class="cf-turnstile" id="'.$id.'" data-sitekey="'.$key.'"></div>';
+                } else {
+                    $html .='<div class="g-recaptcha" id="'.$id.'" data-sitekey="'.$key.'"></div>';
+                }
                 $html .="<input type=\"hidden\" id=\"$id\" name=\"$name\" value=\"trigger\">";
                 break;
             case 'checkbox':
